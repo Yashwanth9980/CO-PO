@@ -25,19 +25,26 @@ export default function IAMarksTable({ test }) {
   const { qGroups, students, id: testId } = test;
 
   // Build a flat list of all question columns in order (1a, 1b, 2a, 2b, ...)
+  // Each part can map to a different CO independently
   const allCols = qGroups.flatMap(g => [
-    { key: `${g.number}a`, label: `${g.number}a`, maxMarks: g.maxMarks, coIdx: g.coIdx },
-    { key: `${g.number}b`, label: `${g.number}b`, maxMarks: g.maxMarks, coIdx: g.coIdx },
+    { key: `${g.number}a`, label: `${g.number}a`, maxMarks: g.maxMarks, coIdx: g.coIdxA },
+    { key: `${g.number}b`, label: `${g.number}b`, maxMarks: g.maxMarks, coIdx: g.coIdxB },
   ]);
 
-  // Group question groups by CO (for the merged CO header)
-  const cosInTest = [...new Set(qGroups.map(g => g.coIdx))].sort((a, b) => a - b);
-  const coGroupings = cosInTest.map(ci => ({
-    coIdx: ci,
-    coLabel: cos[ci] || `CO${ci + 1}`,
-    colSpan: qGroups.filter(g => g.coIdx === ci).length * 2, // each qGroup has 2 cols (a+b)
-    color: getColor(ci),
-  }));
+  // Collect unique COs present (for attainment rows)
+  const cosInTest = [...new Set(allCols.map(c => c.coIdx))].sort((a, b) => a - b);
+
+  // Build consecutive CO runs for the merged header row
+  const coRuns = [];
+  allCols.forEach(col => {
+    const last = coRuns[coRuns.length - 1];
+    if (last && last.coIdx === col.coIdx) {
+      last.colSpan++;
+    } else {
+      coRuns.push({ coIdx: col.coIdx, coLabel: cos[col.coIdx] || `CO${col.coIdx + 1}`, colSpan: 1, color: getColor(col.coIdx) });
+    }
+  });
+  const coGroupings = coRuns;
 
   const totalMaxMarks = qGroups.reduce((sum, g) => sum + g.maxMarks, 0);
 
@@ -84,7 +91,7 @@ export default function IAMarksTable({ test }) {
 
       const uploadedStudents = rows
         .slice(1)
-        .filter(row => row.some(cell => cell !== '' && cell !== null))
+        .filter(row => row.some(cell => cell !== '' && cell !== null) && parseFloat(row[0]) > 0)
         .map((row, i) => {
           const qMarks = {};
           allCols.forEach(col => {
@@ -121,6 +128,9 @@ export default function IAMarksTable({ test }) {
     const qKeys = allCols.map(c => c.key);
     const header = ['Sl.No.', 'Student Name', 'USN', ...qKeys];
 
+    // CO info row — shows which CO each question part is mapped to
+    const coInfoRow = ['', 'CO Mapping →', '', ...allCols.map(c => cos[c.coIdx] || `CO${c.coIdx + 1}`)];
+
     // 3 sample rows — alternate a/b for variety
     const sampleRows = [1, 2, 3].map((num, idx) => {
       const marks = qGroups.flatMap(g => {
@@ -133,13 +143,20 @@ export default function IAMarksTable({ test }) {
       return [num, `Student ${num}`, usn, ...marks];
     });
 
-    const wsData = [header, ...sampleRows];
+    const wsData = [header, coInfoRow, ...sampleRows];
     const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+    // Style the CO info row (row index 1, 0-based)
+    const coInfoStyle = { font: { italic: true, color: { rgb: '2B6CB0' } }, fill: { fgColor: { rgb: 'EBF8FF' } } };
+    qKeys.forEach((_, i) => {
+      const cellAddr = XLSX.utils.encode_cell({ r: 1, c: i + 3 });
+      if (ws[cellAddr]) ws[cellAddr].s = coInfoStyle;
+    });
 
     // Column widths
     ws['!cols'] = [
       { wch: 7 }, { wch: 20 }, { wch: 15 },
-      ...qKeys.map(() => ({ wch: 8 })),
+      ...qKeys.map(() => ({ wch: 10 })),
     ];
 
     const wb = XLSX.utils.book_new();

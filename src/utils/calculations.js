@@ -94,23 +94,23 @@ export function calcIndirectAttainment(surveyData) {
  * In either/or exams, only one part will be non-zero.
  */
 export function getCOMarksForStudent(student, qGroups, coIdx) {
-  return qGroups
-    .filter(g => g.coIdx === coIdx)
-    .reduce((sum, g) => {
-      const a = parseFloat(student.qMarks?.[`${g.number}a`]) || 0;
-      const b = parseFloat(student.qMarks?.[`${g.number}b`]) || 0;
-      return sum + a + b;
-    }, 0);
+  return qGroups.reduce((sum, g) => {
+    if (g.coIdxA === coIdx) sum += parseFloat(student.qMarks?.[`${g.number}a`]) || 0;
+    if (g.coIdxB === coIdx) sum += parseFloat(student.qMarks?.[`${g.number}b`]) || 0;
+    return sum;
+  }, 0);
 }
 
 /**
  * Get the max marks for a CO from question groups.
- * = sum of maxMarks for all question groups mapped to coIdx.
+ * Each part (a/b) is counted independently based on coIdxA/coIdxB.
  */
 export function getCOMaxFromQGroups(qGroups, coIdx) {
-  return qGroups
-    .filter(g => g.coIdx === coIdx)
-    .reduce((sum, g) => sum + g.maxMarks, 0);
+  return qGroups.reduce((sum, g) => {
+    if (g.coIdxA === coIdx) sum += g.maxMarks;
+    if (g.coIdxB === coIdx) sum += g.maxMarks;
+    return sum;
+  }, 0);
 }
 
 /**
@@ -119,7 +119,7 @@ export function getCOMaxFromQGroups(qGroups, coIdx) {
 export function calcAverageIAAttainment(iaTests, coIdx) {
   const valid = iaTests.filter(t => {
     if (!t.students || t.students.length === 0) return false;
-    if (t.qGroups) return t.qGroups.some(g => g.coIdx === coIdx);
+    if (t.qGroups) return t.qGroups.some(g => g.coIdxA === coIdx || g.coIdxB === coIdx);
     const selectedCOs = t.selectedCOs ?? [];
     return selectedCOs.includes(coIdx);
   });
