@@ -261,9 +261,9 @@ export default function IAMarksTable({ test }) {
               <th rowSpan={2} className="ia-th-fixed">#</th>
               <th rowSpan={2} className="ia-th-fixed" style={{ minWidth: '140px', textAlign: 'left' }}>Student Name</th>
               <th rowSpan={2} className="ia-th-fixed" style={{ minWidth: '110px' }}>USN</th>
-              {coGroupings.map(cg => (
+              {coGroupings.map((cg, idx) => (
                 <th
-                  key={cg.coIdx}
+                  key={idx}
                   colSpan={cg.colSpan}
                   style={{ background: cg.color.header, color: 'white', borderRight: '2px solid #fff' }}
                 >
@@ -331,12 +331,12 @@ export default function IAMarksTable({ test }) {
               </td>
               {coGroupings.map((cg, idx) => {
                 const color = cg.color;
-                const pct = coAttainments[idx];
+                const pct = coAttainments[cosInTest.indexOf(cg.coIdx)];
                 const level = pct >= 60 ? 3 : pct >= 30 ? 2 : 1;
                 const lvlColor = level === 3 ? '#276749' : level === 2 ? '#744210' : '#9b2c2c';
                 return (
                   <td
-                    key={cg.coIdx}
+                    key={idx}
                     colSpan={cg.colSpan}
                     style={{
                       background: color.band,
