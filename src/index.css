@@ -588,7 +588,8 @@ table input[type="number"]:focus {
 }
 
 .chart-card {
-  min-width: 0; /* allow shrinking in grid */
+  min-width: 0;     /* allow shrinking in grid */
+  min-height: 240px; /* prevent 0-height collapse */
 }
 
 .chart-note {
@@ -602,7 +603,7 @@ table input[type="number"]:focus {
 }
 
 /* ── Print / Save-as-PDF ───────────────────────────────────────────────────── */
-.no-print   { }          /* visible on screen, hidden when printing */
+.no-print   { display: revert; } /* visible on screen, hidden when printing */
 .print-only { display: none; } /* hidden on screen, visible when printing */
 
 .print-meta {
