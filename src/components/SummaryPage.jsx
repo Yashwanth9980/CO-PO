@@ -36,7 +36,7 @@ function TotalAttainmentChart({ rows }) {
   const color = (v) => v >= 60 ? '#38a169' : v >= 40 ? '#d69e2e' : '#e53e3e';
 
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto' }} aria-label="Total CO Attainment">
+    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', minHeight: '180px', display: 'block' }} aria-label="Total CO Attainment">
       <g transform={`translate(${ml},${mt})`}>
         {[0, 25, 50, 75, 100].map(v => (
           <g key={v}>
@@ -96,7 +96,7 @@ function BreakdownChart({ rows }) {
   const y = (v) => ch - (Math.min(v, 100) / 100) * ch;
 
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto' }} aria-label="CO Attainment Breakdown">
+    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', minHeight: '200px', display: 'block' }} aria-label="CO Attainment Breakdown">
       <g transform={`translate(${ml},${mt})`}>
         {[0, 20, 40, 60, 80, 100].map(v => (
           <g key={v}>
@@ -284,7 +284,7 @@ export default function SummaryPage() {
       </div>
 
       {/* Download / Print toolbar */}
-      <div className="ia-upload-bar no-print" style={{ marginBottom: '1.25rem' }}>
+      <div className="ia-upload-bar no-print" style={{ display: 'flex', marginBottom: '1.25rem' }}>
         <button className="btn btn-success" onClick={downloadExcel}>
           Download Excel (Course File)
         </button>
