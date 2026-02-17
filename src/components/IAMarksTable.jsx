@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import * as XLSX from 'xlsx';
 import { useApp } from '../context/AppContext';
-import { getCOMarksForStudent, getCOMaxFromQGroups, calcAttainmentPct, getLevel, getYN, formatPct } from '../utils/calculations';
+import { getCOMarksForStudent, getCOMaxFromQGroups, getCOMarksAndMaxForStudent, calcAttainmentPct, calcIAAttainmentPct, getLevel, getYN, formatPct } from '../utils/calculations';
 
 // CO header colors for visual grouping
 const CO_COLORS = [
@@ -53,12 +53,11 @@ export default function IAMarksTable({ test }) {
     return allCols.reduce((sum, col) => sum + (parseFloat(s.qMarks?.[col.key]) || 0), 0);
   }
 
-  // CO attainment percentages
+  // CO attainment percentages — use per-student effective max so that students
+  // who chose questions not covering a given CO don't inflate the denominator.
   const coAttainments = cosInTest.map(ci => {
-    const coMax = getCOMaxFromQGroups(qGroups, ci);
-    if (coMax === 0) return 0;
-    const coStudents = students.map(s => ({ marks: getCOMarksForStudent(s, qGroups, ci) }));
-    return calcAttainmentPct(coStudents, coMax);
+    const studentData = students.map(s => getCOMarksAndMaxForStudent(s, qGroups, ci));
+    return calcIAAttainmentPct(studentData);
   });
 
   // ---- CSV / Excel Upload ----
@@ -387,14 +386,12 @@ export default function IAMarksTable({ test }) {
                   <td style={{ textAlign: 'left' }}>{s.name}</td>
                   <td>{s.usn}</td>
                   {cosInTest.map(ci => {
-                    const marks = getCOMarksForStudent(s, qGroups, ci);
-                    const coMax = getCOMaxFromQGroups(qGroups, ci);
-                    return <td key={ci}>{marks}/{coMax}</td>;
+                    const { marks, max } = getCOMarksAndMaxForStudent(s, qGroups, ci);
+                    return <td key={ci}>{max > 0 ? `${marks}/${max}` : '-'}</td>;
                   })}
                   {cosInTest.map(ci => {
-                    const marks = getCOMarksForStudent(s, qGroups, ci);
-                    const coMax = getCOMaxFromQGroups(qGroups, ci);
-                    const lvl = coMax > 0 ? getLevel(marks, coMax) : null;
+                    const { marks, max } = getCOMarksAndMaxForStudent(s, qGroups, ci);
+                    const lvl = max > 0 ? getLevel(marks, max) : null;
                     return (
                       <td key={`l${ci}`}>
                         {lvl !== null ? <span className={`level-badge level-${lvl}`}>{lvl}</span> : '-'}
@@ -402,9 +399,8 @@ export default function IAMarksTable({ test }) {
                     );
                   })}
                   {cosInTest.map(ci => {
-                    const marks = getCOMarksForStudent(s, qGroups, ci);
-                    const coMax = getCOMaxFromQGroups(qGroups, ci);
-                    const lvl = coMax > 0 ? getLevel(marks, coMax) : null;
+                    const { marks, max } = getCOMarksAndMaxForStudent(s, qGroups, ci);
+                    const lvl = max > 0 ? getLevel(marks, max) : null;
                     const yn = lvl !== null ? getYN(lvl) : null;
                     return (
                       <td key={`yn${ci}`}>
