@@ -3,8 +3,21 @@ import { useApp } from '../context/AppContext';
 import MarksTable from './MarksTable';
 
 export default function AssignmentPage() {
-  const { assignments, addAssignment, removeAssignment, updateTestMaxTotal } = useApp();
+  const { assignments, addAssignment, removeAssignment, updateTestMaxTotal, importIAStudentsToAll, iaTests } = useApp();
   const [activeIdx, setActiveIdx] = useState(0);
+  const [importMsg, setImportMsg] = useState(null);
+
+  const iaSource = iaTests?.find(t => t.students && t.students.length > 0);
+
+  function handleImportToAll() {
+    const label = importIAStudentsToAll();
+    if (label) {
+      setImportMsg(`Student roster from "${label}" imported to all ${assignments.length} assignment(s). Enter marks for each assignment below.`);
+    } else {
+      setImportMsg('No IA test with students found. Load students in an IA test first.');
+    }
+    setTimeout(() => setImportMsg(null), 6000);
+  }
 
   return (
     <div>
@@ -15,6 +28,19 @@ export default function AssignmentPage() {
         Assignment Attainment contributes <strong>20%</strong> to CIE Attainment.
         <br />Level 3 (Y): ≥60% | Level 2 (N): 30–59% | Level 1 (N): 10–29% | Level 0 (N): &lt;10%
       </div>
+
+      {/* Import to all assignments — only shown when an IA test has students */}
+      {iaSource && (
+        <div className="info-box" style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+          <span>Copy student roster from <strong>{iaSource.label}</strong> into all assignments at once:</span>
+          <button className="btn btn-outline btn-sm" onClick={handleImportToAll}>
+            Import Students to All Assignments
+          </button>
+        </div>
+      )}
+      {importMsg && (
+        <div className="alert alert-success" style={{ marginBottom: '0.5rem' }}>{importMsg}</div>
+      )}
 
       <div className="card">
         <div className="card-title">
