@@ -119,6 +119,47 @@ export function getCOMaxFromQGroups(qGroups, coIdx) {
 }
 
 /**
+ * Get a student's marks AND their effective max marks for a given CO.
+ * The effective max is based only on the questions the student actually attempted
+ * (i.e. questions where at least one part has a non-zero mark). This is needed
+ * for exams where students choose a subset of questions and different parts of the
+ * same question can map to different COs — using a global max would inflate the
+ * denominator and make CO2/CO3 attainment appear as 0%.
+ */
+export function getCOMarksAndMaxForStudent(student, qGroups, coIdx) {
+  let marks = 0;
+  let max = 0;
+  for (const g of qGroups) {
+    const qa = parseFloat(student.qMarks?.[`${g.number}a`]) || 0;
+    const qb = parseFloat(student.qMarks?.[`${g.number}b`]) || 0;
+    if (qa === 0 && qb === 0) continue; // student did not attempt this question
+    if (g.coIdxA === coIdx) {
+      marks += qa;
+      max += g.maxMarks;
+    }
+    if (g.coIdxB === coIdx) {
+      marks += qb;
+      max += g.maxMarks;
+    }
+  }
+  return { marks, max };
+}
+
+/**
+ * Calculate attainment percentage using per-student effective max marks.
+ * studentData: array of { marks, max } objects (one per student).
+ * Only students who attempted at least one question mapped to the CO (max > 0)
+ * are included in the denominator — students who chose questions not covering
+ * this CO are excluded rather than counted as non-attaining.
+ */
+export function calcIAAttainmentPct(studentData) {
+  const valid = studentData.filter(s => s.max > 0);
+  if (valid.length === 0) return 0;
+  const yCount = valid.filter(s => getLevel(s.marks, s.max) === 3).length;
+  return (yCount / valid.length) * 100;
+}
+
+/**
  * For multiple IA tests: average the attainment across tests that include each CO
  */
 export function calcAverageIAAttainment(iaTests, coIdx) {
@@ -131,12 +172,8 @@ export function calcAverageIAAttainment(iaTests, coIdx) {
   if (valid.length === 0) return 0;
   const sum = valid.reduce((acc, test) => {
     if (test.qGroups) {
-      const coMax = getCOMaxFromQGroups(test.qGroups, coIdx);
-      if (coMax === 0) return acc;
-      const coStudents = test.students.map(s => ({
-        marks: getCOMarksForStudent(s, test.qGroups, coIdx),
-      }));
-      return acc + calcAttainmentPct(coStudents, coMax);
+      const studentData = test.students.map(s => getCOMarksAndMaxForStudent(s, test.qGroups, coIdx));
+      return acc + calcIAAttainmentPct(studentData);
     }
     // Legacy format
     const coStudents = test.students.map(s => ({ marks: s.coMarks?.[coIdx] ?? '' }));
