@@ -8,10 +8,13 @@ export default function MarksTable({ testType, test }) {
   const { config, cos, generateStudents, updateStudentMark, updateTestMaxMarks, updateTestMaxTotal } = useApp();
   const numCOs = parseInt(config.numCOs);
 
+  // For IA tests, only show the COs selected for this test; fallback to all COs
+  const activeCOs = test.selectedCOs ?? Array.from({ length: numCOs }, (_, i) => i);
+
   const students = test.students || [];
   const coMaxMarks = test.coMaxMarks || {};
 
-  const attainments = Array.from({ length: numCOs }, (_, ci) => {
+  const attainments = activeCOs.map(ci => {
     const coStudents = students.map(s => ({ marks: s.coMarks[ci] ?? '' }));
     return calcAttainmentPct(coStudents, coMaxMarks[ci] ?? test.maxMarks);
   });
@@ -22,7 +25,7 @@ export default function MarksTable({ testType, test }) {
       <div className="card" style={{ marginBottom: '1rem' }}>
         <div className="card-title">Maximum Marks per CO</div>
         <div className="flex flex-wrap gap-1" style={{ gap: '0.75rem' }}>
-          {Array.from({ length: numCOs }, (_, ci) => (
+          {activeCOs.map(ci => (
             <div className="form-group" key={ci} style={{ width: '120px' }}>
               <label>{cos[ci] || `CO${ci + 1}`}</label>
               <input
@@ -69,13 +72,13 @@ export default function MarksTable({ testType, test }) {
                 <tr>
                   <th style={{ textAlign: 'left' }}>Sl. No.</th>
                   <th style={{ textAlign: 'left' }}>Student Name</th>
-                  {Array.from({ length: numCOs }, (_, ci) => (
+                  {activeCOs.map(ci => (
                     <th key={ci}>{cos[ci] || `CO${ci + 1}`}<br /><span style={{ fontWeight: 400, fontSize: '0.72rem' }}>/{coMaxMarks[ci] ?? test.maxMarks}</span></th>
                   ))}
-                  {Array.from({ length: numCOs }, (_, ci) => (
+                  {activeCOs.map(ci => (
                     <th key={`l${ci}`}>L<br />{cos[ci] || `CO${ci + 1}`}</th>
                   ))}
-                  {Array.from({ length: numCOs }, (_, ci) => (
+                  {activeCOs.map(ci => (
                     <th key={`yn${ci}`}>Y/N<br />{cos[ci] || `CO${ci + 1}`}</th>
                   ))}
                 </tr>
@@ -85,7 +88,7 @@ export default function MarksTable({ testType, test }) {
                   <tr key={s.id}>
                     <td>{si + 1}</td>
                     <td style={{ textAlign: 'left' }}>{s.name}</td>
-                    {Array.from({ length: numCOs }, (_, ci) => (
+                    {activeCOs.map(ci => (
                       <td key={ci}>
                         <input
                           type="number"
@@ -97,7 +100,7 @@ export default function MarksTable({ testType, test }) {
                         />
                       </td>
                     ))}
-                    {Array.from({ length: numCOs }, (_, ci) => {
+                    {activeCOs.map(ci => {
                       const marks = s.coMarks[ci];
                       const max = coMaxMarks[ci] ?? test.maxMarks;
                       const lvl = marks !== '' && marks !== undefined ? getLevel(parseFloat(marks), max) : null;
@@ -111,7 +114,7 @@ export default function MarksTable({ testType, test }) {
                         </td>
                       );
                     })}
-                    {Array.from({ length: numCOs }, (_, ci) => {
+                    {activeCOs.map(ci => {
                       const marks = s.coMarks[ci];
                       const max = coMaxMarks[ci] ?? test.maxMarks;
                       const lvl = marks !== '' && marks !== undefined ? getLevel(parseFloat(marks), max) : null;
@@ -132,11 +135,11 @@ export default function MarksTable({ testType, test }) {
                 {/* Attainment row */}
                 <tr className="totals-row">
                   <td colSpan={2}>CO Attainment (%)</td>
-                  {Array.from({ length: numCOs }, (_, ci) => <td key={ci}></td>)}
-                  {Array.from({ length: numCOs }, (_, ci) => <td key={`l${ci}`}></td>)}
-                  {Array.from({ length: numCOs }, (_, ci) => (
+                  {activeCOs.map(ci => <td key={ci}></td>)}
+                  {activeCOs.map(ci => <td key={`l${ci}`}></td>)}
+                  {activeCOs.map((ci, idx) => (
                     <td key={`att${ci}`} style={{ color: '#1a365d', fontWeight: 700 }}>
-                      {formatPct(attainments[ci])}%
+                      {formatPct(attainments[idx])}%
                     </td>
                   ))}
                 </tr>
@@ -146,15 +149,15 @@ export default function MarksTable({ testType, test }) {
 
           {/* Attainment Summary */}
           <div className="attainment-grid" style={{ marginTop: '1rem' }}>
-            {Array.from({ length: numCOs }, (_, ci) => (
+            {activeCOs.map((ci, idx) => (
               <div className="attainment-box co-box" key={ci}>
                 <div className="co-label">{cos[ci] || `CO${ci + 1}`} Attainment</div>
-                <div className="co-value">{formatPct(attainments[ci])}</div>
+                <div className="co-value">{formatPct(attainments[idx])}</div>
                 <div className="co-unit">%</div>
                 <div className="progress-bar-wrap">
                   <div
-                    className={`progress-bar-fill ${attainments[ci] >= 60 ? 'fill-green' : attainments[ci] >= 40 ? 'fill-yellow' : 'fill-red'}`}
-                    style={{ width: `${Math.min(attainments[ci], 100)}%` }}
+                    className={`progress-bar-fill ${attainments[idx] >= 60 ? 'fill-green' : attainments[idx] >= 40 ? 'fill-yellow' : 'fill-red'}`}
+                    style={{ width: `${Math.min(attainments[idx], 100)}%` }}
                   />
                 </div>
               </div>

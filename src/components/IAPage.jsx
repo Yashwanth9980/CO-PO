@@ -3,7 +3,7 @@ import { useApp } from '../context/AppContext';
 import MarksTable from './MarksTable';
 
 export default function IAPage() {
-  const { iaTests, addIATest, removeIATest, updateTestMaxTotal } = useApp();
+  const { config, cos, iaTests, addIATest, removeIATest, updateTestMaxTotal, toggleIATestCO } = useApp();
   const [activeTest, setActiveTest] = useState(0);
 
   return (
@@ -67,9 +67,39 @@ export default function IAPage() {
               )}
             </div>
 
-            {iaTests[activeTest] && (
-              <MarksTable testType="ia" test={iaTests[activeTest]} />
-            )}
+            {iaTests[activeTest] && (() => {
+              const test = iaTests[activeTest];
+              const selectedCOs = test.selectedCOs ?? Array.from({ length: config.numCOs }, (_, i) => i);
+              return (
+                <>
+                  <div className="card" style={{ marginBottom: '1rem' }}>
+                    <div className="card-title">
+                      COs Covered in this Test
+                      <span className="badge">{selectedCOs.length} selected</span>
+                    </div>
+                    <div style={{ marginBottom: '0.5rem', fontSize: '0.82rem', color: '#555' }}>
+                      Select which Course Outcomes are assessed in {test.label}:
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      {Array.from({ length: config.numCOs }, (_, ci) => {
+                        const isSelected = selectedCOs.includes(ci);
+                        return (
+                          <button
+                            key={ci}
+                            className={`btn btn-sm ${isSelected ? 'btn-primary' : 'btn-outline'}`}
+                            onClick={() => toggleIATestCO(test.id, ci)}
+                            title={isSelected ? `Remove ${cos[ci] || `CO${ci + 1}`} from this test` : `Add ${cos[ci] || `CO${ci + 1}`} to this test`}
+                          >
+                            {cos[ci] || `CO${ci + 1}`}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  <MarksTable testType="ia" test={test} />
+                </>
+              );
+            })()}
           </div>
         )}
       </div>
