@@ -89,14 +89,53 @@ export function calcIndirectAttainment(surveyData) {
 }
 
 /**
- * For multiple IA tests: average the attainment across tests
+ * Get a student's total marks for a given CO from question-based IA test.
+ * Sums all question part marks (a + b) for question groups mapped to coIdx.
+ * In either/or exams, only one part will be non-zero.
+ */
+export function getCOMarksForStudent(student, qGroups, coIdx) {
+  return qGroups
+    .filter(g => g.coIdx === coIdx)
+    .reduce((sum, g) => {
+      const a = parseFloat(student.qMarks?.[`${g.number}a`]) || 0;
+      const b = parseFloat(student.qMarks?.[`${g.number}b`]) || 0;
+      return sum + a + b;
+    }, 0);
+}
+
+/**
+ * Get the max marks for a CO from question groups.
+ * = sum of maxMarks for all question groups mapped to coIdx.
+ */
+export function getCOMaxFromQGroups(qGroups, coIdx) {
+  return qGroups
+    .filter(g => g.coIdx === coIdx)
+    .reduce((sum, g) => sum + g.maxMarks, 0);
+}
+
+/**
+ * For multiple IA tests: average the attainment across tests that include each CO
  */
 export function calcAverageIAAttainment(iaTests, coIdx) {
-  const valid = iaTests.filter(t => t.students && t.students.length > 0 && t.maxMarks > 0);
+  const valid = iaTests.filter(t => {
+    if (!t.students || t.students.length === 0) return false;
+    if (t.qGroups) return t.qGroups.some(g => g.coIdx === coIdx);
+    const selectedCOs = t.selectedCOs ?? [];
+    return selectedCOs.includes(coIdx);
+  });
   if (valid.length === 0) return 0;
   const sum = valid.reduce((acc, test) => {
-    const coStudents = test.students.map(s => ({ marks: s.coMarks[coIdx] ?? '' }));
-    return acc + calcAttainmentPct(coStudents, test.coMaxMarks[coIdx] ?? test.maxMarks);
+    if (test.qGroups) {
+      const coMax = getCOMaxFromQGroups(test.qGroups, coIdx);
+      if (coMax === 0) return acc;
+      const coStudents = test.students.map(s => ({
+        marks: getCOMarksForStudent(s, test.qGroups, coIdx),
+      }));
+      return acc + calcAttainmentPct(coStudents, coMax);
+    }
+    // Legacy format
+    const coStudents = test.students.map(s => ({ marks: s.coMarks?.[coIdx] ?? '' }));
+    return acc + calcAttainmentPct(coStudents, test.coMaxMarks?.[coIdx] ?? test.maxMarks);
   }, 0);
   return sum / valid.length;
 }
