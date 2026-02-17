@@ -18,7 +18,7 @@ function getColor(coIdx) {
 }
 
 export default function IAMarksTable({ test }) {
-  const { cos, generateStudents, updateStudentQMark, setIAStudents, config } = useApp();
+  const { cos, generateStudents, updateStudentQMark, setIAStudents, setQGroupCOs, config } = useApp();
   const fileInputRef = useRef(null);
   const [uploadMsg, setUploadMsg] = useState(null);
 
@@ -89,6 +89,31 @@ export default function IAMarksTable({ test }) {
         if (idx !== -1) qColMap[col.key] = idx;
       });
 
+      // Detect CO mapping row — row[1] is the CO info row if its name cell contains "CO"
+      const possibleCoRow = rows[1] ?? [];
+      const coRowLabel = String(possibleCoRow[nameIdx !== -1 ? nameIdx : 1] || '').toLowerCase();
+      const hasCoRow = coRowLabel.includes('co') || coRowLabel.includes('mapping');
+
+      if (hasCoRow) {
+        // Parse CO labels from the info row and build coMappings
+        const coMappings = {};
+        allCols.forEach(col => {
+          if (qColMap[col.key] !== undefined) {
+            const coStr = String(possibleCoRow[qColMap[col.key]] || '').trim();
+            const ciFound = cos.findIndex(c => c.trim().toLowerCase() === coStr.toLowerCase());
+            if (ciFound !== -1) {
+              const qNum = parseInt(col.key);
+              const part = col.key.slice(-1); // 'a' or 'b'
+              if (!coMappings[qNum]) coMappings[qNum] = {};
+              coMappings[qNum][part] = ciFound;
+            }
+          }
+        });
+        if (Object.keys(coMappings).length > 0) {
+          setQGroupCOs(testId, coMappings);
+        }
+      }
+
       const uploadedStudents = rows
         .slice(1)
         .filter(row => row.some(cell => cell !== '' && cell !== null) && parseFloat(row[0]) > 0)
@@ -114,7 +139,8 @@ export default function IAMarksTable({ test }) {
       }
 
       setIAStudents(testId, uploadedStudents);
-      setUploadMsg({ type: 'success', text: `Loaded ${uploadedStudents.length} students successfully.` });
+      const coMsg = hasCoRow ? ' CO mapping applied from file.' : '';
+      setUploadMsg({ type: 'success', text: `Loaded ${uploadedStudents.length} students successfully.${coMsg}` });
     } catch {
       setUploadMsg({ type: 'error', text: 'Failed to parse the file. Please use the sample template.' });
     }

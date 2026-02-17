@@ -200,6 +200,28 @@ export function AppProvider({ children }) {
     );
   };
 
+  // Batch-update CO assignments for all question parts at once (used when uploading Excel with CO mapping row)
+  // coMappings: { [qNumber]: { a: coIdx, b: coIdx } }
+  const setQGroupCOs = (testId, coMappings) => {
+    setIATests(prev =>
+      prev.map(t => {
+        if (t.id !== testId) return t;
+        return {
+          ...t,
+          qGroups: t.qGroups.map(g => {
+            const m = coMappings[g.number];
+            if (!m) return g;
+            return {
+              ...g,
+              ...(m.a !== undefined ? { coIdxA: m.a } : {}),
+              ...(m.b !== undefined ? { coIdxB: m.b } : {}),
+            };
+          }),
+        };
+      })
+    );
+  };
+
   // Assignment/SEE mark update (unchanged)
   const updateStudentMark = (testType, testId, studentId, coIdx, marks) => {
     if (testType === 'assignment') {
@@ -321,7 +343,7 @@ export function AppProvider({ children }) {
         cos, updateCOLabel,
         iaTests, setIATests, addIATest, removeIATest,
         updateStudentQMark, updateQGroupCOPart, updateQGroupMaxMarks,
-        addQGroup, removeQGroup, setIAStudents, generateStudents,
+        addQGroup, removeQGroup, setIAStudents, setQGroupCOs, generateStudents,
         assignments, addAssignment, removeAssignment,
         see, survey,
         updateStudentMark, updateTestMaxMarks, updateTestMaxTotal,
