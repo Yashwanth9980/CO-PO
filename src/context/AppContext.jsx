@@ -285,6 +285,28 @@ export function AppProvider({ children }) {
     setAssignments(prev => prev.filter(t => t.id !== id));
   };
 
+  // Bulk-set students for a single assignment (used for CSV/Excel upload)
+  const setAssignmentStudents = (testId, students) => {
+    setAssignments(prev =>
+      prev.map(t => (t.id === testId ? { ...t, students } : t))
+    );
+  };
+
+  // Copy the student roster from the first IA test that has students into ALL assignments.
+  // Returns the label of the source test, or null if no IA test has students yet.
+  const importIAStudentsToAll = () => {
+    const source = iaTests.find(t => t.students && t.students.length > 0);
+    if (!source) return null;
+    const students = source.students.map((s, i) => ({
+      id: i + 1,
+      name: s.name,
+      usn: s.usn || '',
+      coMarks: {},
+    }));
+    setAssignments(prev => prev.map(a => ({ ...a, students })));
+    return source.label;
+  };
+
   const updateSurveyQuestion = (coIdx, qIdx, field, value) => {
     setSurvey(prev =>
       prev.map((co, ci) =>
@@ -344,7 +366,7 @@ export function AppProvider({ children }) {
         iaTests, setIATests, addIATest, removeIATest,
         updateStudentQMark, updateQGroupCOPart, updateQGroupMaxMarks,
         addQGroup, removeQGroup, setIAStudents, setQGroupCOs, generateStudents,
-        assignments, addAssignment, removeAssignment,
+        assignments, addAssignment, removeAssignment, setAssignmentStudents, importIAStudentsToAll,
         see, survey,
         updateStudentMark, updateTestMaxMarks, updateTestMaxTotal,
         updateSurveyQuestion, updateSurveyRating,
