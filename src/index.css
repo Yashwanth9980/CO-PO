@@ -464,9 +464,117 @@ table input[type="number"]:focus {
 .text-muted { color: #718096; }
 .font-bold { font-weight: 700; }
 
+/* ---- Question Group Cards (IAPage) ---- */
+.qgroup-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.qgroup-card {
+  background: white;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 0.75rem;
+  min-width: 130px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+
+.qgroup-card.qgroup-add {
+  border: 2px dashed #3182ce;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  min-height: 90px;
+  transition: background 0.15s;
+}
+
+.qgroup-card.qgroup-add:hover {
+  background: #ebf8ff;
+}
+
+.qgroup-label {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #1a365d;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-bottom: 0.2rem;
+}
+
+/* ---- IA Upload Bar ---- */
+.ia-upload-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.75rem;
+  background: #f7fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  margin-bottom: 0.5rem;
+}
+
+/* ---- IA Marks Table ---- */
+.ia-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+
+.ia-table thead tr:first-child th {
+  padding: 0.6rem 0.5rem;
+  text-align: center;
+  font-weight: 700;
+  font-size: 0.8rem;
+  border-right: 1px solid rgba(255,255,255,0.3);
+  white-space: nowrap;
+}
+
+.ia-table thead tr:last-child th {
+  padding: 0.4rem 0.3rem;
+  text-align: center;
+  font-size: 0.72rem;
+  white-space: nowrap;
+  border-right: 1px solid rgba(255,255,255,0.2);
+}
+
+.ia-th-fixed {
+  background: #2b6cb0;
+  color: white;
+}
+
+.ia-table tbody td {
+  padding: 0.35rem 0.4rem;
+  text-align: center;
+  border-bottom: 1px solid #e2e8f0;
+  border-right: 1px solid #f0f0f0;
+}
+
+.ia-table input[type="number"] {
+  width: 54px;
+  padding: 0.3rem 0.3rem;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 4px;
+  text-align: center;
+  font-size: 0.82rem;
+}
+
+.ia-table input[type="number"]:focus {
+  outline: none;
+  border-color: #4299e1;
+}
+
 @media (max-width: 768px) {
   .main-content { padding: 1rem; }
   .header h1 { font-size: 1.2rem; }
   .nav-tabs { padding: 0 0.5rem; }
   .nav-tab { padding: 0.6rem 0.9rem; font-size: 0.78rem; }
+  .qgroup-grid { gap: 0.5rem; }
+  .qgroup-card { min-width: 110px; }
 }

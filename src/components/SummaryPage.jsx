@@ -1,6 +1,7 @@
 import { useApp } from '../context/AppContext';
 import {
   calcAttainmentPct,
+  calcAverageIAAttainment,
   calcCIEAttainment,
   calcDirectAttainment,
   calcTotalAttainment,
@@ -27,19 +28,9 @@ export default function SummaryPage() {
   const numCOs = parseInt(config.numCOs);
 
   // ---- IA Attainment per CO (average across IA tests that include each CO) ----
-  const iaAttainments = Array.from({ length: numCOs }, (_, ci) => {
-    const validTests = iaTests.filter(t => {
-      if (!t.students || t.students.length === 0) return false;
-      const selectedCOs = t.selectedCOs ?? Array.from({ length: numCOs }, (_, i) => i);
-      return selectedCOs.includes(ci);
-    });
-    if (validTests.length === 0) return 0;
-    const sum = validTests.reduce((acc, t) => {
-      const coStudents = t.students.map(s => ({ marks: s.coMarks[ci] ?? '' }));
-      return acc + calcAttainmentPct(coStudents, t.coMaxMarks[ci] ?? t.maxMarks);
-    }, 0);
-    return sum / validTests.length;
-  });
+  const iaAttainments = Array.from({ length: numCOs }, (_, ci) =>
+    calcAverageIAAttainment(iaTests, ci)
+  );
 
   // ---- Assignment Attainment per CO (average across all assignments) ----
   const assignAttainments = Array.from({ length: numCOs }, (_, ci) => {
