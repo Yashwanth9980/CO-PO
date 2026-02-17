@@ -103,12 +103,17 @@ export function getCOMarksForStudent(student, qGroups, coIdx) {
 
 /**
  * Get the max marks for a CO from question groups.
- * Each part (a/b) is counted independently based on coIdxA/coIdxB.
+ * When both parts (a/b) of a question map to the same CO, count only once
+ * because it is an either/or exam — students answer only one part.
  */
 export function getCOMaxFromQGroups(qGroups, coIdx) {
   return qGroups.reduce((sum, g) => {
-    if (g.coIdxA === coIdx) sum += g.maxMarks;
-    if (g.coIdxB === coIdx) sum += g.maxMarks;
+    if (g.coIdxA === coIdx && g.coIdxB === coIdx) {
+      sum += g.maxMarks; // both parts same CO → count once
+    } else {
+      if (g.coIdxA === coIdx) sum += g.maxMarks;
+      if (g.coIdxB === coIdx) sum += g.maxMarks;
+    }
     return sum;
   }, 0);
 }

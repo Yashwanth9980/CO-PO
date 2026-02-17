@@ -429,19 +429,19 @@ export default function IAMarksTable({ test }) {
         </div>
       </details>
 
-      {/* CO Attainment Summary Cards */}
+      {/* CO Attainment Summary Cards — one card per unique CO */}
       <div className="attainment-grid" style={{ marginTop: '1rem' }}>
-        {coGroupings.map((cg, idx) => {
+        {cosInTest.map((ci, idx) => {
           const pct = coAttainments[idx];
           const color = pct >= 60 ? '#276749' : pct >= 40 ? '#744210' : '#9b2c2c';
           const bg = pct >= 60 ? '#f0fff4' : pct >= 40 ? '#fffbeb' : '#fff5f5';
           return (
             <div
-              key={cg.coIdx}
+              key={ci}
               className="attainment-box co-box"
               style={{ background: `linear-gradient(135deg, ${bg}, white)`, borderColor: `${color}40` }}
             >
-              <div className="co-label">{cg.coLabel} Attainment</div>
+              <div className="co-label">{cos[ci] || `CO${ci + 1}`} Attainment</div>
               <div className="co-value" style={{ color }}>{formatPct(pct)}</div>
               <div className="co-unit">%</div>
               <div className="progress-bar-wrap">
