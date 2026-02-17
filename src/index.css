@@ -578,3 +578,73 @@ table input[type="number"]:focus {
   .qgroup-grid { gap: 0.5rem; }
   .qgroup-card { min-width: 110px; }
 }
+
+/* ── Chart layout ──────────────────────────────────────────────────────────── */
+.chart-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.chart-card {
+  min-width: 0; /* allow shrinking in grid */
+}
+
+.chart-note {
+  font-size: 0.75rem;
+  color: #718096;
+  margin-bottom: 0.5rem;
+}
+
+@media (max-width: 900px) {
+  .chart-grid { grid-template-columns: 1fr; }
+}
+
+/* ── Print / Save-as-PDF ───────────────────────────────────────────────────── */
+.no-print   { }          /* visible on screen, hidden when printing */
+.print-only { display: none; } /* hidden on screen, visible when printing */
+
+.print-meta {
+  font-size: 0.9rem;
+  color: #2d3748;
+  margin-bottom: 0.75rem;
+}
+
+@media print {
+  /* Hide chrome UI */
+  .header, .nav-tabs, .no-print { display: none !important; }
+
+  /* Show print-only elements */
+  .print-only { display: block !important; }
+
+  body { background: white; font-size: 11pt; }
+  .main-content { padding: 0; }
+
+  /* Cards look like boxes without shadows */
+  .card {
+    box-shadow: none;
+    border: 1px solid #ccc;
+    page-break-inside: avoid;
+    margin-bottom: 1rem;
+  }
+
+  /* Charts side-by-side on print */
+  .chart-grid { grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+
+  /* Ensure table doesn't break oddly */
+  table { font-size: 9pt; }
+  .table-wrapper { overflow: visible; }
+
+  /* Keep attainment cards compact */
+  .attainment-grid { grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 0.5rem; }
+  .attainment-box .co-value { font-size: 1.4rem; }
+
+  /* Progress bars print fine with background-color */
+  .progress-bar-fill { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+  /* Formula box */
+  .formula-box { background: #f8f8f8 !important; color: #2d3748 !important; border: 1px solid #ccc; }
+  .formula-box .hl { color: #2b6cb0 !important; }
+  .formula-box .val { color: #276749 !important; }
+}
