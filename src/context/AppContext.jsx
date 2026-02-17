@@ -20,14 +20,13 @@ function createStudent(id, name) {
 }
 
 // Each qGroup = one question number (Q1, Q2, ...) with parts a and b
-// coIdx is the index into the cos[] array
+// coIdxA/coIdxB are independent CO indices for part a and part b
 function createIATest(id, label, numCOs) {
   const numGroups = 6;
-  const qGroups = Array.from({ length: numGroups }, (_, i) => ({
-    number: i + 1,
-    maxMarks: 10,
-    coIdx: Math.min(Math.floor(i * numCOs / numGroups), numCOs - 1),
-  }));
+  const qGroups = Array.from({ length: numGroups }, (_, i) => {
+    const co = Math.min(Math.floor(i * numCOs / numGroups), numCOs - 1);
+    return { number: i + 1, maxMarks: 10, coIdxA: co, coIdxB: co };
+  });
   return {
     id,
     label: label || `IA Test ${id}`,
@@ -140,14 +139,15 @@ export function AppProvider({ children }) {
     );
   };
 
-  // Change the CO assignment for a question group
-  const updateQGroupCO = (testId, groupNumber, coIdx) => {
+  // Change the CO assignment for a question group part ('a' or 'b')
+  const updateQGroupCOPart = (testId, groupNumber, part, coIdx) => {
+    const field = part === 'a' ? 'coIdxA' : 'coIdxB';
     setIATests(prev =>
       prev.map(t =>
         t.id !== testId ? t : {
           ...t,
           qGroups: t.qGroups.map(g =>
-            g.number === groupNumber ? { ...g, coIdx: parseInt(coIdx) } : g
+            g.number === groupNumber ? { ...g, [field]: parseInt(coIdx) } : g
           ),
         }
       )
@@ -174,7 +174,7 @@ export function AppProvider({ children }) {
       prev.map(t => {
         if (t.id !== testId) return t;
         const nextNum = t.qGroups.length > 0 ? Math.max(...t.qGroups.map(g => g.number)) + 1 : 1;
-        const newGroup = { number: nextNum, maxMarks: 10, coIdx: 0 };
+        const newGroup = { number: nextNum, maxMarks: 10, coIdxA: 0, coIdxB: 0 };
         const qGroups = [...t.qGroups, newGroup];
         return { ...t, qGroups, maxMarks: t.maxMarks + 10 };
       })
@@ -320,7 +320,7 @@ export function AppProvider({ children }) {
         config, updateConfig,
         cos, updateCOLabel,
         iaTests, setIATests, addIATest, removeIATest,
-        updateStudentQMark, updateQGroupCO, updateQGroupMaxMarks,
+        updateStudentQMark, updateQGroupCOPart, updateQGroupMaxMarks,
         addQGroup, removeQGroup, setIAStudents, generateStudents,
         assignments, addAssignment, removeAssignment,
         see, survey,

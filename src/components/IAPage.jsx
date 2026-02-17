@@ -6,7 +6,7 @@ export default function IAPage() {
   const {
     config, cos,
     iaTests, addIATest, removeIATest,
-    updateQGroupCO, updateQGroupMaxMarks, addQGroup, removeQGroup,
+    updateQGroupCOPart, updateQGroupMaxMarks, addQGroup, removeQGroup,
   } = useApp();
   const [activeTest, setActiveTest] = useState(0);
 
@@ -72,8 +72,8 @@ export default function IAPage() {
               </div>
 
               <p style={{ fontSize: '0.8rem', color: '#718096', marginBottom: '0.75rem' }}>
-                Each question (Q1–Q{test.qGroups.length}) has parts <strong>a</strong> and <strong>b</strong> (10 marks each, students answer one).
-                Assign each question to its CO. Questions covering the same CO will be grouped together in the table header.
+                Each question (Q1–Q{test.qGroups.length}) has parts <strong>a</strong> and <strong>b</strong> (students answer one).
+                Assign each part to its CO independently — parts of the same question can map to different COs.
               </p>
 
               <div className="qgroup-grid">
@@ -81,7 +81,6 @@ export default function IAPage() {
                   <div key={g.number} className="qgroup-card">
                     <div className="qgroup-label">
                       Q{g.number}
-                      <span style={{ fontSize: '0.7rem', color: '#718096' }}>({g.number}a / {g.number}b)</span>
                     </div>
 
                     <div className="form-group" style={{ marginBottom: '0.4rem' }}>
@@ -95,11 +94,26 @@ export default function IAPage() {
                       />
                     </div>
 
-                    <div className="form-group">
-                      <label style={{ fontSize: '0.7rem' }}>Assign to CO</label>
+                    <div className="form-group" style={{ marginBottom: '0.3rem' }}>
+                      <label style={{ fontSize: '0.7rem' }}>Part <strong>a</strong> → CO</label>
                       <select
-                        value={g.coIdx}
-                        onChange={e => updateQGroupCO(test.id, g.number, e.target.value)}
+                        value={g.coIdxA}
+                        onChange={e => updateQGroupCOPart(test.id, g.number, 'a', e.target.value)}
+                        style={{ fontSize: '0.82rem', padding: '0.3rem 0.5rem' }}
+                      >
+                        {Array.from({ length: config.numCOs }, (_, ci) => (
+                          <option key={ci} value={ci}>
+                            {cos[ci] || `CO${ci + 1}`}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="form-group">
+                      <label style={{ fontSize: '0.7rem' }}>Part <strong>b</strong> → CO</label>
+                      <select
+                        value={g.coIdxB}
+                        onChange={e => updateQGroupCOPart(test.id, g.number, 'b', e.target.value)}
                         style={{ fontSize: '0.82rem', padding: '0.3rem 0.5rem' }}
                       >
                         {Array.from({ length: config.numCOs }, (_, ci) => (
@@ -136,9 +150,18 @@ export default function IAPage() {
               {/* CO Summary */}
               <div className="flex flex-wrap gap-1" style={{ marginTop: '0.75rem' }}>
                 {Array.from({ length: config.numCOs }, (_, ci) => {
-                  const count = test.qGroups.filter(g => g.coIdx === ci).length;
-                  if (count === 0) return null;
-                  const maxPerCO = test.qGroups.filter(g => g.coIdx === ci).reduce((s, g) => s + g.maxMarks, 0);
+                  const parts = test.qGroups.flatMap(g => {
+                    const list = [];
+                    if (g.coIdxA === ci) list.push(`Q${g.number}a`);
+                    if (g.coIdxB === ci) list.push(`Q${g.number}b`);
+                    return list;
+                  });
+                  if (parts.length === 0) return null;
+                  const maxPerCO = test.qGroups.reduce((s, g) => {
+                    if (g.coIdxA === ci) s += g.maxMarks;
+                    if (g.coIdxB === ci) s += g.maxMarks;
+                    return s;
+                  }, 0);
                   return (
                     <span
                       key={ci}
@@ -152,7 +175,7 @@ export default function IAPage() {
                         fontWeight: 600,
                       }}
                     >
-                      {cos[ci] || `CO${ci + 1}`}: Q{test.qGroups.filter(g => g.coIdx === ci).map(g => g.number).join(', Q')} — {maxPerCO} marks
+                      {cos[ci] || `CO${ci + 1}`}: {parts.join(', ')} — {maxPerCO} marks
                     </span>
                   );
                 })}
