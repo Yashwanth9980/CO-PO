@@ -14,6 +14,7 @@ function createIATest(id, label, numCOs) {
     label: label || `IA Test ${id}`,
     maxMarks: 30,
     coMaxMarks: Object.fromEntries(Array.from({ length: numCOs }, (_, i) => [i, 30])),
+    selectedCOs: Array.from({ length: numCOs }, (_, i) => i),
     students: [],
   };
 }
@@ -202,6 +203,20 @@ export function AppProvider({ children }) {
     setIATests(prev => prev.filter(t => t.id !== id));
   };
 
+  const toggleIATestCO = (testId, coIdx) => {
+    setIATests(prev =>
+      prev.map(t => {
+        if (t.id !== testId) return t;
+        const current = t.selectedCOs ?? Array.from({ length: config.numCOs }, (_, i) => i);
+        const next = current.includes(coIdx)
+          ? current.filter(i => i !== coIdx)
+          : [...current, coIdx].sort((a, b) => a - b);
+        if (next.length === 0) return t; // keep at least one CO
+        return { ...t, selectedCOs: next };
+      })
+    );
+  };
+
   const addAssignment = () => {
     const id = assignments.length > 0 ? Math.max(...assignments.map(t => t.id)) + 1 : 1;
     setAssignments(prev => [...prev, createAssignment(id, `Assignment ${id}`, config.numCOs)]);
@@ -281,6 +296,7 @@ export function AppProvider({ children }) {
         setIATests,
         addIATest,
         removeIATest,
+        toggleIATestCO,
         assignments,
         addAssignment,
         removeAssignment,

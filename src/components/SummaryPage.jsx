@@ -26,9 +26,13 @@ export default function SummaryPage() {
   const { config, cos, iaTests, assignments, see, survey } = useApp();
   const numCOs = parseInt(config.numCOs);
 
-  // ---- IA Attainment per CO (average across all IA tests) ----
+  // ---- IA Attainment per CO (average across IA tests that include each CO) ----
   const iaAttainments = Array.from({ length: numCOs }, (_, ci) => {
-    const validTests = iaTests.filter(t => t.students && t.students.length > 0);
+    const validTests = iaTests.filter(t => {
+      if (!t.students || t.students.length === 0) return false;
+      const selectedCOs = t.selectedCOs ?? Array.from({ length: numCOs }, (_, i) => i);
+      return selectedCOs.includes(ci);
+    });
     if (validTests.length === 0) return 0;
     const sum = validTests.reduce((acc, t) => {
       const coStudents = t.students.map(s => ({ marks: s.coMarks[ci] ?? '' }));
