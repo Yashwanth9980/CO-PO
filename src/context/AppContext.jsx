@@ -14,9 +14,14 @@ function createIAStudent(id, name, usn) {
   };
 }
 
-// Assignment/SEE student uses coMarks
+// Assignment student uses coMarks
 function createStudent(id, name) {
   return { id, name: name || `Student ${id}`, coMarks: {} };
+}
+
+// SEE student uses a single totalMarks field (VTU SEE has no CO-wise breakup)
+function createSEEStudent(id, name, usn) {
+  return { id, name: name || `Student ${id}`, usn: usn || '', totalMarks: '' };
 }
 
 // Each qGroup = one question number (Q1, Q2, ...) with parts a and b
@@ -77,7 +82,6 @@ export function AppProvider({ children }) {
 
   const [see, setSEE] = useState({
     maxMarks: 100,
-    coMaxMarks: Object.fromEntries(Array.from({ length: 5 }, (_, i) => [i, 100])),
     students: [],
   });
 
@@ -120,7 +124,7 @@ export function AppProvider({ children }) {
       if (testType === 'assignment') {
         setAssignments(prev => prev.map(t => (t.id === testId ? { ...t, students } : t)));
       } else if (testType === 'see') {
-        setSEE(prev => ({ ...prev, students }));
+        setSEE(prev => ({ ...prev, students: students.map((s, i) => createSEEStudent(i + 1, s.name)) }));
       }
     }
   };
@@ -243,6 +247,26 @@ export function AppProvider({ children }) {
         ),
       }));
     }
+  };
+
+  // SEE-specific: update a single student's total marks
+  const updateSEEStudentMark = (studentId, marks) => {
+    setSEE(prev => ({
+      ...prev,
+      students: prev.students.map(s =>
+        s.id !== studentId ? s : { ...s, totalMarks: marks }
+      ),
+    }));
+  };
+
+  // SEE-specific: bulk-set students (used for CSV/Excel upload and IA import)
+  const setSEEStudents = (students) => {
+    setSEE(prev => ({ ...prev, students }));
+  };
+
+  // SEE-specific: update max marks
+  const updateSEEMaxMarks = (val) => {
+    setSEE(prev => ({ ...prev, maxMarks: parseFloat(val) || 0 }));
   };
 
   const updateTestMaxMarks = (testType, testId, coIdx, val) => {
@@ -368,6 +392,7 @@ export function AppProvider({ children }) {
         addQGroup, removeQGroup, setIAStudents, setQGroupCOs, generateStudents,
         assignments, addAssignment, removeAssignment, setAssignmentStudents, importIAStudentsToAll,
         see, survey,
+        updateSEEStudentMark, setSEEStudents, updateSEEMaxMarks,
         updateStudentMark, updateTestMaxMarks, updateTestMaxTotal,
         updateSurveyQuestion, updateSurveyRating,
         addSurveyQuestion, removeSurveyQuestion, updateSurveyRespondents,
