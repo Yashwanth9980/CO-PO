@@ -1,3 +1,5 @@
+import { useRef, useState } from 'react';
+import * as XLSX from 'xlsx';
 import { useApp } from '../context/AppContext';
 import { formatPct } from '../utils/calculations';
 
@@ -9,7 +11,11 @@ export default function IndirectPage() {
     addSurveyQuestion,
     removeSurveyQuestion,
     updateSurveyRespondents,
+    bulkUpdateSurvey,
   } = useApp();
+
+  const fileInputRef = useRef(null);
+  const [uploadMsg, setUploadMsg] = useState(null);
 
   function calcQuestionAvg(question) {
     const total = question.ratings.reduce((s, r) => s + r.count, 0);
@@ -28,6 +34,149 @@ export default function IndirectPage() {
   const grandAverage = coAverages.length ? coAverages.reduce((a, b) => a + b, 0) / coAverages.length : 0;
   const attainmentPct = (grandAverage / 5) * 100;
 
+  // ---- Download sample Excel ----
+  function downloadSample() {
+    const header = ['CO', 'Question', 'Total Respondents', 'Scale 1', 'Scale 2', 'Scale 3', 'Scale 4', 'Scale 5'];
+    const rows = [];
+    survey.forEach(co => {
+      co.questions.forEach((q, qi) => {
+        rows.push([
+          co.coLabel,
+          q.text || `Question ${qi + 1} for ${co.coLabel}`,
+          co.totalRespondents,
+          ...q.ratings.map(r => r.count),
+        ]);
+      });
+    });
+    // If no data yet, generate illustrative sample rows
+    if (rows.every(r => r[3] === 0 && r[4] === 0 && r[5] === 0 && r[6] === 0 && r[7] === 0)) {
+      rows.length = 0;
+      survey.forEach(co => {
+        co.questions.forEach((_, qi) => {
+          rows.push([co.coLabel, `Question ${qi + 1} for ${co.coLabel}`, co.totalRespondents, 5, 10, 15, 10, 4]);
+        });
+      });
+    }
+
+    const ws = XLSX.utils.aoa_to_sheet([header, ...rows]);
+    ws['!cols'] = [{ wch: 8 }, { wch: 38 }, { wch: 18 }, ...Array(5).fill({ wch: 10 })];
+
+    // Style header row
+    header.forEach((_, c) => {
+      const addr = XLSX.utils.encode_cell({ r: 0, c });
+      if (ws[addr]) ws[addr].s = { font: { bold: true }, fill: { fgColor: { rgb: 'EBF4FF' } } };
+    });
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Survey');
+    XLSX.writeFile(wb, 'sample_survey.xlsx');
+  }
+
+  // ---- CSV / Excel upload ----
+  async function handleFileUpload(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadMsg(null);
+
+    try {
+      const buffer = await file.arrayBuffer();
+      const wb = XLSX.read(new Uint8Array(buffer), { type: 'array' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+
+      if (rows.length < 2) {
+        setUploadMsg({ type: 'error', text: 'File is empty or has no data rows.' });
+        e.target.value = '';
+        return;
+      }
+
+      const headers = rows[0].map(h => String(h).trim().toLowerCase());
+
+      const coColIdx   = headers.findIndex(h => h === 'co' || h === 'co label' || h.startsWith('co'));
+      const qColIdx    = headers.findIndex(h => h.includes('question') || h === 'q' || h === 'ques');
+      const respColIdx = headers.findIndex(h => h.includes('respondent') || h.includes('total resp') || h === 'n');
+
+      const scaleIdxes = [1, 2, 3, 4, 5].map(n =>
+        headers.findIndex(h =>
+          h === `scale ${n}` || h === `scale${n}` || h === `s${n}` || h === String(n) ||
+          h === `rating ${n}` || h === `r${n}`
+        )
+      );
+
+      if (coColIdx === -1) {
+        setUploadMsg({ type: 'error', text: 'Missing "CO" column. Use the sample template.' });
+        e.target.value = '';
+        return;
+      }
+      if (qColIdx === -1) {
+        setUploadMsg({ type: 'error', text: 'Missing "Question" column. Use the sample template.' });
+        e.target.value = '';
+        return;
+      }
+      if (scaleIdxes.some(i => i === -1)) {
+        setUploadMsg({ type: 'error', text: 'Missing Scale columns (Scale 1 – Scale 5). Use the sample template.' });
+        e.target.value = '';
+        return;
+      }
+
+      // Group data rows by CO label
+      const coMap = {}; // coLabel → { totalRespondents, questions[] }
+      rows
+        .slice(1)
+        .filter(row => row.some(cell => cell !== '' && cell !== null))
+        .forEach(row => {
+          const coLabel = String(row[coColIdx] || '').trim();
+          if (!coLabel) return;
+
+          const qText      = String(row[qColIdx] || '').trim();
+          const respondents = respColIdx !== -1 ? (parseInt(row[respColIdx]) || 0) : 0;
+          const ratings    = scaleIdxes.map((si, ri) => ({
+            scale: ri + 1,
+            count: parseInt(row[si]) || 0,
+          }));
+
+          if (!coMap[coLabel]) {
+            coMap[coLabel] = { totalRespondents: respondents, questions: [] };
+          }
+          // Use the largest respondent value seen for this CO
+          if (respondents > coMap[coLabel].totalRespondents) {
+            coMap[coLabel].totalRespondents = respondents;
+          }
+          coMap[coLabel].questions.push({ text: qText, ratings });
+        });
+
+      if (Object.keys(coMap).length === 0) {
+        setUploadMsg({ type: 'error', text: 'No data rows found. Check that the CO column has valid values.' });
+        e.target.value = '';
+        return;
+      }
+
+      // Merge uploaded data into existing survey (preserve COs not in file)
+      const newSurvey = survey.map(existingCO => {
+        const data = coMap[existingCO.coLabel];
+        if (!data || data.questions.length === 0) return existingCO;
+        return {
+          coLabel: existingCO.coLabel,
+          totalRespondents: data.totalRespondents || existingCO.totalRespondents,
+          questions: data.questions,
+        };
+      });
+
+      bulkUpdateSurvey(newSurvey);
+
+      const loadedCOs = Object.keys(coMap).length;
+      const loadedQs  = Object.values(coMap).reduce((s, c) => s + c.questions.length, 0);
+      setUploadMsg({
+        type: 'success',
+        text: `Loaded ${loadedQs} question${loadedQs !== 1 ? 's' : ''} across ${loadedCOs} CO${loadedCOs !== 1 ? 's' : ''} from file.`,
+      });
+    } catch {
+      setUploadMsg({ type: 'error', text: 'Failed to parse the file. Please use the sample template.' });
+    }
+
+    e.target.value = '';
+  }
+
   return (
     <div>
       <div className="section-title">Indirect Assessment — Student Survey</div>
@@ -36,6 +185,39 @@ export default function IndirectPage() {
         <strong>Procedure:</strong> Conduct a survey with questions related to each CO.
         Students rate each question on a scale of <strong>1 (Not Confident)</strong> to <strong>5 (Very Confident)</strong>.
         <br />Average rating per question → Average per CO → Grand average → Indirect Attainment = Grand Avg / 5 × 100%
+      </div>
+
+      {/* Upload toolbar */}
+      <div className="card" style={{ marginBottom: '1rem' }}>
+        <div className="card-title">Upload Survey Data</div>
+        <p style={{ fontSize: '0.88rem', color: '#4a5568', marginBottom: '0.75rem' }}>
+          Upload a CSV or Excel file containing survey responses. Each row should represent one question for one CO.
+          Required columns: <strong>CO</strong>, <strong>Question</strong>, <strong>Scale 1</strong> – <strong>Scale 5</strong>.
+          Optional: <strong>Total Respondents</strong>.
+        </p>
+        <div className="ia-upload-bar">
+          <button className="btn btn-success btn-sm" onClick={() => fileInputRef.current?.click()}>
+            Upload CSV / Excel
+          </button>
+          <button className="btn btn-outline btn-sm" onClick={downloadSample}>
+            Download Sample
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".csv,.xlsx,.xls"
+            style={{ display: 'none' }}
+            onChange={handleFileUpload}
+          />
+        </div>
+        {uploadMsg && (
+          <div
+            className={`alert ${uploadMsg.type === 'success' ? 'alert-success' : 'alert-warning'}`}
+            style={{ marginTop: '0.5rem' }}
+          >
+            {uploadMsg.text}
+          </div>
+        )}
       </div>
 
       {survey.map((co, coIdx) => {
@@ -171,7 +353,7 @@ export default function IndirectPage() {
             <div className="co-unit">%</div>
             <div className="progress-bar-wrap">
               <div
-                className={`progress-bar-fill fill-purple`}
+                className="progress-bar-fill fill-purple"
                 style={{ width: `${Math.min(attainmentPct, 100)}%` }}
               />
             </div>

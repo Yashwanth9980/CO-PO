@@ -382,6 +382,11 @@ export function AppProvider({ children }) {
     );
   };
 
+  // Bulk-replace the entire survey (used for CSV/Excel upload)
+  const bulkUpdateSurvey = (newSurvey) => {
+    setSurvey(newSurvey);
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -395,7 +400,7 @@ export function AppProvider({ children }) {
         updateSEEStudentMark, setSEEStudents, updateSEEMaxMarks,
         updateStudentMark, updateTestMaxMarks, updateTestMaxTotal,
         updateSurveyQuestion, updateSurveyRating,
-        addSurveyQuestion, removeSurveyQuestion, updateSurveyRespondents,
+        addSurveyQuestion, removeSurveyQuestion, updateSurveyRespondents, bulkUpdateSurvey,
       }}
     >
       {children}
