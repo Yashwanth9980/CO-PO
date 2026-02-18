@@ -166,11 +166,13 @@ export default function SummaryPage() {
     return sum / valid.length;
   });
 
-  const seeAttainments = Array.from({ length: numCOs }, (_, ci) => {
+  // SEE uses total marks only (no CO-wise breakup) — same attainment applies to all COs
+  const seeAttainmentBase = (() => {
     if (!see.students || see.students.length === 0) return 0;
-    const coStudents = see.students.map(s => ({ marks: s.coMarks[ci] ?? '' }));
-    return calcAttainmentPct(coStudents, see.coMaxMarks[ci] ?? see.maxMarks);
-  });
+    const students = see.students.map(s => ({ marks: s.totalMarks ?? '' }));
+    return calcAttainmentPct(students, see.maxMarks);
+  })();
+  const seeAttainments = Array.from({ length: numCOs }, () => seeAttainmentBase);
 
   const cieAttainments = Array.from({ length: numCOs }, (_, ci) =>
     calcCIEAttainment(iaAttainments[ci], assignAttainments[ci])
