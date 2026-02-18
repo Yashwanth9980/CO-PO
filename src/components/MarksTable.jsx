@@ -256,7 +256,10 @@ export default function MarksTable({ testType, test }) {
                     </th>
                   ))}
                   {activeCOs.map(ci => (
-                    <th key={`l${ci}`}>L<br />{cos[ci] || `CO${ci + 1}`}</th>
+                    <th key={`pct${ci}`}>% Marks<br />{cos[ci] || `CO${ci + 1}`}</th>
+                  ))}
+                  {activeCOs.map(ci => (
+                    <th key={`l${ci}`}>Level<br />{cos[ci] || `CO${ci + 1}`}</th>
                   ))}
                   {activeCOs.map(ci => (
                     <th key={`yn${ci}`}>Y/N<br />{cos[ci] || `CO${ci + 1}`}</th>
@@ -283,6 +286,17 @@ export default function MarksTable({ testType, test }) {
                         />
                       </td>
                     ))}
+                    {activeCOs.map(ci => {
+                      const marks = s.coMarks[ci];
+                      const max   = coMaxMarks[ci] ?? test.maxMarks;
+                      const pct   = marks !== '' && marks !== undefined && max > 0
+                        ? ((parseFloat(marks) / max) * 100).toFixed(1) : null;
+                      return (
+                        <td key={`pct${ci}`} style={{ fontSize: '0.82rem', color: '#4a5568' }}>
+                          {pct !== null ? `${pct}%` : <span className="text-muted">-</span>}
+                        </td>
+                      );
+                    })}
                     {activeCOs.map(ci => {
                       const marks = s.coMarks[ci];
                       const max   = coMaxMarks[ci] ?? test.maxMarks;
@@ -317,6 +331,7 @@ export default function MarksTable({ testType, test }) {
                 <tr className="totals-row">
                   <td colSpan={2 + (hasUSN ? 1 : 0)}>CO Attainment (%)</td>
                   {activeCOs.map(ci => <td key={ci}></td>)}
+                  {activeCOs.map(ci => <td key={`pct${ci}`}></td>)}
                   {activeCOs.map(ci => <td key={`l${ci}`}></td>)}
                   {activeCOs.map((ci, idx) => (
                     <td key={`att${ci}`} style={{ color: '#1a365d', fontWeight: 700 }}>
